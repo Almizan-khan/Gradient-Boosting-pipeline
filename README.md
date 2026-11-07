@@ -46,6 +46,20 @@ This uses scikit-learn's bundled diabetes regression dataset, so it needs no Kag
 
 The historical student-score CV RMSE of 8.75719 is retained in [the original README](docs/original-readme.md), but is not represented as independently reproduced. The maintained benchmark reports its evaluation protocol and limitations alongside the numbers.
 
+## Measured reference results
+
+Five-fold OOF RMSE over seeds 17, 42 and 73; lower is better. Parameters were fixed, and the CatBoost reference model uses exactly 100 iterations without validation-fold early stopping.
+
+| Model | Mean RMSE | Sample SD across seeds |
+|---|---:|---:|
+| mean | 77.230 | 0.178 |
+| ridge | 54.850 | 0.265 |
+| catboost | 57.499 | 0.459 |
+
+[Raw results and provenance](reports/diabetes-fixed-budget.json) · [Executed run](https://github.com/Almizan-khan/Gradient-Boosting-pipeline/actions/runs/42401858794)
+
+Ridge outperformed this CatBoost configuration on this dataset. That is a useful baseline finding, not a reason to omit the simpler model. Three correlated re-splits are not a confidence interval or a universal model ranking. The competition training pipeline separately retains its original validation-based checkpoint selection.
+
 ## Design and limitations
 
 Feature importance is averaged across folds and describes this fitted model, not causal influence. Random K-fold validation assumes rows are suitably independent; use group or time-aware splits when the data requires them. For model-selection studies, separate tuning from final evaluation.
