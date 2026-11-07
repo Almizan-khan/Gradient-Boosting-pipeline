@@ -12,7 +12,6 @@ from sklearn.metrics import mean_squared_error
 from sklearn.model_selection import KFold, cross_val_predict
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-from pipeline import train_cv
 
 def run(include_catboost=True):
     dataset = load_diabetes(as_frame=True)
@@ -25,12 +24,16 @@ def run(include_catboost=True):
             predictions = cross_val_predict(model, x, y, cv=split)
             rows.append({'model': name, 'seed': seed, 'rmse': float(np.sqrt(mean_squared_error(y, predictions))), 'seconds': time.perf_counter()-started})
         if include_catboost:
-            report, _ = train_cv(x.assign(target=y), 'target', folds=5, seed=seed, iterations=100)
-            rows.append({'model': 'catboost', 'seed': seed, 'rmse': report['rmse'], 'seconds': report['seconds']})
+            from catboost import CatBoostRegressor
+            model = CatBoostRegressor(iterations=100, learning_rate=0.03, depth=8, loss_function='RMSE', random_seed=seed,
+                                      verbose=False, thread_count=2, allow_writing_files=False)
+            started = time.perf_counter()
+            predictions = cross_val_predict(model, x, y, cv=split)
+            rows.append({'model': 'catboost', 'seed': seed, 'rmse': float(np.sqrt(mean_squared_error(y, predictions))), 'seconds': time.perf_counter()-started})
     return {'dataset': 'scikit-learn diabetes regression dataset', 'rows': len(x), 'features': list(x.columns),
             'scope': 'small public reference dataset; not the Kaggle student-score competition',
-            'protocol': '5-fold out-of-fold RMSE, three seeds; defaults fixed before evaluation; no hyperparameter search',
-            'caveat': 'CatBoost uses each validation fold for early stopping; use nested validation for unbiased model selection.',
+            'protocol': '5-fold out-of-fold RMSE, three seeds; fixed parameters; CatBoost always trains 100 iterations without evaluation-fold early stopping',
+            'caveat': 'Small single-dataset comparison, not a general model ranking. The competition pipeline retains validation-based checkpoint selection separately.',
             'results': rows, 'environment': {'python': platform.python_version(), 'platform': platform.platform()}}
 
 if __name__ == '__main__':
