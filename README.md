@@ -1,18 +1,58 @@
-# Gradient-Boosting-pipeline
+# Tabular regression · CatBoost
+
+A cross-validation pipeline for mixed numeric and categorical features, with out-of-fold predictions, saved fold models, and baseline comparisons.
+
+[![checks](https://github.com/Almizan-khan/Gradient-Boosting-pipeline/actions/workflows/checks.yml/badge.svg)](https://github.com/Almizan-khan/Gradient-Boosting-pipeline/actions/workflows/checks.yml)
 
 
-Finally completed my full Gradient Boosting training end to end on a live Kaggle Playground competition
+## What this demonstrates
 
-Worked on Predicting Student Test Scores using tabular data and focused completely on doing things the right way not shortcuts
+- Five-fold model evaluation and an ensemble of fold predictions.
+- Consistent categorical/missing-value handling and explicit ID/target exclusion.
+- Mean feature importance across folds, reloadable models, and schema checks.
 
-Used CatBoost regression with proper k fold cross validation early stopping and RMSE based evaluation
+## Quick start
 
-Handled categorical features correctly avoided data leakage and tracked validation performance fold by fold instead of trusting a single split
+Use Python 3.11. Obtain the competition files through your own Kaggle account and accept its dataset terms there.
 
-Final cross validation RMSE came out to be 8 75719 which is very close to leaderboard performance
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python GRADIENTBOOST.py --train data/train.csv --test data/test.csv --target exam_score --id id --output outputs/student-scores
+```
 
-Feature importance analysis showed that study hours class attendance sleep quality and study method drive most of the prediction while demographic features had minimal impact which also makes real world sense
+On Windows, activate with `.venv\Scripts\activate`. Input paths are configurable; no `/kaggle/input` mount is required. `pipeline.py` provides the same CLI and reusable `train_cv` / `predict_saved` functions.
 
-This project helped me deeply understand how gradient boosting actually learns how residuals are corrected over iterations and why cross validation matters more than leaderboard chasing
+## Outputs
 
-Still learning still improving but this one gave me real confidence in my fundamentals of machine learning and gradient boosting
+| Artifact | Purpose |
+|---|---|
+| `metrics.json` | Overall/fold RMSE, configuration, features and timing |
+| `oof_predictions.csv` | One held-out prediction per training row |
+| `fold_*.cbm` | Reloadable CatBoost models |
+| `submission.csv` | ID-aligned average predictions for the supplied test file |
+
+Models and downloaded data remain outside source control. The original five-fold approach is retained; numerical results must be generated from the actual supplied dataset.
+
+## Reproducible reference benchmark
+
+```bash
+python benchmark.py --output reports/benchmark.json
+python -m unittest discover -s tests -v
+```
+
+This uses scikit-learn's bundled diabetes regression dataset, so it needs no Kaggle credentials. It compares a mean predictor, scaled Ridge regression and CatBoost with five-fold out-of-fold RMSE over three seeds. It is a small reference experiment, not a clinical tool or a result on the student-score competition. CI publishes the generated report as an artifact.
+
+The historical student-score CV RMSE of 8.75719 is retained in [the original README](docs/original-readme.md), but is not represented as independently reproduced. The maintained benchmark reports its evaluation protocol and limitations alongside the numbers.
+
+## Design and limitations
+
+Feature importance is averaged across folds and describes this fitted model, not causal influence. Random K-fold validation assumes rows are suitably independent; use group or time-aware splits when the data requires them. For model-selection studies, separate tuning from final evaluation.
+
+See [validation](VALIDATION.md) and the [original experiment](notebooks/original_experiment.ipynb).
+
+## References
+
+- [CatBoost documentation](https://catboost.ai/docs/)
+- [scikit-learn cross-validation](https://scikit-learn.org/stable/modules/cross_validation.html)
